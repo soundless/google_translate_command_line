@@ -45,5 +45,5 @@ Usage: gt Sentence [From] [To]
 ------------------------------------
 Example:
 gt how
-gt "How they do it" en zh
+gt "How are you" en zh
 ```
