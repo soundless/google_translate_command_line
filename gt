@@ -1,0 +1,59 @@
+#!/bin/bash
+
+# Check if curl is installed and internet connectivity
+TMPFILE=/tmp/tmp.checked
+if [ ! -f $TMPFILE ]; then
+    curl -V >/dev/null 2>&1|| { echo "'curl' not installed. Exiting ..." >&2; exit 1;} 
+    curl -v www.google.com 2>&1|grep -m1 "HTTP/1.1" >/dev/null 2>&1|| { echo "No Internet. Exiting..." >&2; exit 1;}
+    touch $TMPFILE
+fi
+
+# Check if mpg123 is installed
+if ! `which mpg123 >/dev/null 2>&1`; then
+    echo "You may want to install 'mpg123' for words pronunciation ..."
+fi
+
+# Main
+if [ $# -eq 0 ] || [ $# -eq 2 ] || [ $# -gt 3 ]
+then
+    echo -e "\nAvailable languages:"
+    echo -e "---------------------"
+    curl -s --user-agent "Mozilla/5.0 (X11; Linux i686) AppleWebKit/534.34 (KHTML, like Gecko) QupZilla/1.3.1 Safari/534.34" "https://translate.google.com/m?&mui=sl"|grep -Eo 'sl=[a-zA-Z-]{2,}">[^>]*<'|sed -e 's/sl=//g' -e 's/">/ -> /g' -e 's/<$//g'|tr "\n" ","|awk -F, '{ for ( i=1; i<=NF;i=i+3) printf "%-24s %-24s %-24s\n", $i, $(i+1), $(i+2) }'
+    echo -e "\nUsage: `basename $0` Sentence [From] [To]"
+    echo -e "------------------------------------"
+    echo -e "Example:\n`basename $0` how"
+    echo -e "`basename $0` \"How they do it\" en zh"
+
+    exit 1
+fi
+
+if [ $# -eq 1 ]; then
+    SENTENCE=`echo "$1" | tr " " "+"`
+
+    if [[ "$SENTENCE" =~ [a-zA-Z] ]]; then
+        FROM='en'
+        TO='zh'
+    else
+        FROM='zh'
+        TO='en'
+    fi
+else
+    SENTENCE=`echo "$1" | tr " " "+"`
+    FROM="$2"
+    TO="$3"
+fi
+
+echo "[${FROM}] -> [${TO}]"
+curl -s --user-agent "Mozilla/5.0 (X11; Linux i686) AppleWebKit/534.34 (KHTML, like Gecko) QupZilla/1.3.1 Safari/534.34" "https://translate.google.com/m?hl=en&sl=${FROM}&tl=${TO}&ie=UTF-8&prev=_m&q=${SENTENCE}"| sed -n 's/.*class="t0">//;s/<.*$//p'
+echo
+
+# Try with voice
+if [ "X$FROM" == "Xen" ]; then
+    TMPFILE=`mktemp --suffix .mp3`
+    curl -s --user-agent "Mozilla/5.0 (X11; Linux i686) AppleWebKit/534.34 (KHTML, like Gecko) QupZilla/1.3.1 Safari/534.34" "https://translate.google.com/translate_tts?ie=UTF-8&tl=en&q=${SENTENCE}" -o $TMPFILE
+    if [ -f $TMPFILE ]; then
+            /usr/bin/mpg123 -q $TMPFILE; rm -f $mpg123
+    fi
+fi
+
+exit 0
