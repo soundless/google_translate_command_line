@@ -4,6 +4,9 @@ google_translate_command_line
 A Command Line bash script for translating words on Ubuntu. Default translation language is "en" to "zh", or "zh" to "en".
 
 
+Usage:
+======
+```
 $ gt
 
 Available languages:
@@ -42,3 +45,4 @@ Usage: gt Sentence [From] [To]
 Example:
 gt how
 gt "How they do it" en zh
+```
