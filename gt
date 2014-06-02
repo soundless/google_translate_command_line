@@ -1,5 +1,7 @@
 #!/bin/bash
 
+USER_AGENT='Mozilla/5.0 (X11; Linux i686) AppleWebKit/534.34 (KHTML, like Gecko) QupZilla/1.3.1 Safari/534.34'
+
 # Check if curl is installed and internet connectivity
 TMPFILE=/tmp/tmp.checked
 if [ ! -f $TMPFILE ]; then
@@ -18,7 +20,7 @@ if [ $# -eq 0 ] || [ $# -eq 2 ] || [ $# -gt 3 ]
 then
     echo -e "\nAvailable languages:"
     echo -e "---------------------"
-    curl -s --user-agent "Mozilla/5.0 (X11; Linux i686) AppleWebKit/534.34 (KHTML, like Gecko) QupZilla/1.3.1 Safari/534.34" "https://translate.google.com/m?&mui=sl"|grep -Eo 'sl=[a-zA-Z-]{2,}">[^>]*<'|sed -e 's/sl=//g' -e 's/">/ -> /g' -e 's/<$//g'|tr "\n" ","|awk -F, '{ for ( i=1; i<=NF;i=i+3) printf "%-24s %-24s %-24s\n", $i, $(i+1), $(i+2) }'
+    curl -s --user-agent "$USER_AGENT" "https://translate.google.com/m?&mui=sl"|grep -Eo 'sl=[a-zA-Z-]{2,}">[^>]*<'|sed -e 's/sl=//g' -e 's/">/ -> /g' -e 's/<$//g'|tr "\n" ","|awk -F, '{ for ( i=1; i<=NF;i=i+3) printf "%-24s %-24s %-24s\n", $i, $(i+1), $(i+2) }'
     echo -e "\nUsage: `basename $0` Sentence [From] [To]"
     echo -e "------------------------------------"
     echo -e "Example:\n`basename $0` how"
@@ -44,13 +46,13 @@ else
 fi
 
 echo "[${FROM}] -> [${TO}]"
-curl -s --user-agent "Mozilla/5.0 (X11; Linux i686) AppleWebKit/534.34 (KHTML, like Gecko) QupZilla/1.3.1 Safari/534.34" "https://translate.google.com/m?hl=en&sl=${FROM}&tl=${TO}&ie=UTF-8&prev=_m&q=${SENTENCE}"| sed -n 's/.*class="t0">//;s/<.*$//p'
+curl -s --user-agent "$USER_AGENT" "https://translate.google.com/m?hl=en&sl=${FROM}&tl=${TO}&ie=UTF-8&prev=_m&q=${SENTENCE}"| sed -n 's/.*class="t0">//;s/<.*$//p'
 echo
 
 # Try with voice
 if [ "X$FROM" == "Xen" ]; then
     TMPFILE=`mktemp --suffix .mp3`
-    curl -s --user-agent "Mozilla/5.0 (X11; Linux i686) AppleWebKit/534.34 (KHTML, like Gecko) QupZilla/1.3.1 Safari/534.34" "https://translate.google.com/translate_tts?ie=UTF-8&tl=en&q=${SENTENCE}" -o $TMPFILE
+    curl -s --user-agent "$USER_AGENT" "https://translate.google.com/translate_tts?ie=UTF-8&tl=en&q=${SENTENCE}" -o $TMPFILE
     if [ -f $TMPFILE ]; then
             /usr/bin/mpg123 -q $TMPFILE; rm -f $mpg123
     fi
