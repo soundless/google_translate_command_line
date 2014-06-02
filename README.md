@@ -1,8 +1,9 @@
 google_translate_command_line
 =============================
 
-A Command Line bash script for translating words on Ubuntu. Default translation language is "en" to "zh", or "zh" to "en".
+A Command Line Bash Script for translating word/sentence on Ubuntu/Debian by Google Translate. Default translation language is from "en" to "zh", or vice versa.
 
+It also provides a way to download the pronunciation of the words/sentence and play it on your computer with mpg123.
 
 Usage
 -----
