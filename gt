@@ -12,18 +12,23 @@ set -ue
 LANG1="en"
 LANG2="zh"
 BASE_URL="https://translate.google.com/"
-YES_VOICE=1
 USER_AGENT='Mozilla/5.0 (X11; Linux i686) AppleWebKit/534.34 (KHTML, like Gecko) QupZilla/1.3.1 Safari/534.34'
 
 #
 # Checks
 #
-CHECKED=/tmp/tmp.gt.checked
+CHECKED=/tmp/tmp.${0/*\//}-checked
 if [ ! -f $CHECKED ]; then
-    curl -V >/dev/null 2>&1|| { echo "'curl' not installed. Exiting ..." >&2; exit 1;} 
-    curl -v www.google.com 2>&1|grep -m1 "HTTP/1.1" >/dev/null 2>&1|| { echo "No Internet. Exiting..." >&2; exit 1;}
-    which mpg123 >/dev/null 2>&1 || echo "Not found 'mpg123', install 'mpg123' for pronunciating words/sentence or put it in the default PATH ..."
-    touch $CHECKED
+    curl -V >/dev/null 2>&1  || { echo "'curl' not installed. Exiting ..." >&2; exit 1;}
+    curl -v ${BASE_URL} 2>&1 |  grep -m1 "HTTP/1.1" >/dev/null 2>&1 || { echo "No Internet. Exiting..." >&2; exit 1;}
+    which mpg123 >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        echo "No mpg123, install it first for activating pronunciation ..."
+        touch $CHECKED
+    else
+        # enable voice
+        echo 1 >$CHECKED
+    fi
 fi
 
 #
@@ -65,23 +70,23 @@ fi
 # Translate
 #
 echo "[${FROM}] -> [${TO}]"
-RESULT=$(curl -s --user-agent "${USER_AGENT}" "${BASE_URL}m?hl=en&sl=${FROM}&tl=${TO}&ie=UTF-8&prev=_m&q=${SENTENCE}"| sed -n 's/.*class="t0">//;s/<.*$//p')
+RESULT=$(curl -s --user-agent "${USER_AGENT}" "${BASE_URL}m?hl=en&sl=${FROM}&tl=${TO}&ie=UTF-8&prev=_m&q=${SENTENCE}" 2>/dev/null | sed -n 's/.*class="t0">//;s/<.*$//p')
 echo $RESULT
 
 #
 # Voice
 #
-if [ $YES_VOICE ]; then
-    TMPFILE=$(mktemp --suffix .mp3)
-    [ -f ${TMPFILE} ] && curl -s --user-agent "${USER_AGENT}" "${BASE_URL}translate_tts?ie=UTF-8&tl=${FROM}&q=${SENTENCE}" -o ${TMPFILE}
-    [ -s ${TMPFILE} ] && mpg123 -q ${TMPFILE}
+if [ -s $CHECKED ]; then
+    MP3FILE=$(mktemp --suffix .mp3)
+    [ -f ${MP3FILE} ] && curl -s --user-agent "${USER_AGENT}" "${BASE_URL}translate_tts?ie=UTF-8&tl=${FROM}&q=${SENTENCE}" -o ${MP3FILE}
+    [ -s ${MP3FILE} ] && mpg123 -q ${MP3FILE}
 
     if [ -n "$RESULT" ]; then
-        [ -f ${TMPFILE} ] && curl -s --user-agent "${USER_AGENT}" "${BASE_URL}translate_tts?ie=UTF-8&tl=${TO}&q=${RESULT}" -o ${TMPFILE}
-        [ -s ${TMPFILE} ] && mpg123 -q ${TMPFILE}
+        [ -f ${MP3FILE} ] && curl -s --user-agent "${USER_AGENT}" "${BASE_URL}translate_tts?ie=UTF-8&tl=${TO}&q=${RESULT}" -o ${MP3FILE}
+        [ -s ${MP3FILE} ] && mpg123 -q ${MP3FILE}
     fi
 
-    [ -f ${TMPFILE} ] && rm -f ${TMPFILE}
+    [ -f ${MP3FILE} ] && rm -f ${MP3FILE}
 fi
 
 set +ue
