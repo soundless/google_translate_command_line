@@ -4,41 +4,56 @@
 # Version 0.1
 # ---------------------------------------------------------
 
+set -ue
+
+#
+# Settings
+#
+LANG1="en"
+LANG2="zh"
+BASE_URL="https://translate.google.com/"
 YES_VOICE=1
 USER_AGENT='Mozilla/5.0 (X11; Linux i686) AppleWebKit/534.34 (KHTML, like Gecko) QupZilla/1.3.1 Safari/534.34'
 
-# Check if curl is installed and having internet connectivity
+#
+# Checks
+#
 CHECKED=/tmp/tmp.gt.checked
 if [ ! -f $CHECKED ]; then
     curl -V >/dev/null 2>&1|| { echo "'curl' not installed. Exiting ..." >&2; exit 1;} 
     curl -v www.google.com 2>&1|grep -m1 "HTTP/1.1" >/dev/null 2>&1|| { echo "No Internet. Exiting..." >&2; exit 1;}
-    which mpg123 2>&1 || echo "Not found 'mpg123', install 'mpg123' for pronunciating words/sentence or put it in the default PATH ..."
+    which mpg123 >/dev/null 2>&1 || echo "Not found 'mpg123', install 'mpg123' for pronunciating words/sentence or put it in the default PATH ..."
     touch $CHECKED
 fi
 
-# Main
+#
+# Usage
+#
 if [ $# -eq 0 ] || [ $# -eq 2 ] || [ $# -gt 3 ]; then
     echo -e "\nAvailable languages:"
     echo -e "---------------------"
-    curl -s --user-agent "$USER_AGENT" "https://translate.google.com/m?&mui=sl"|grep -Eo 'sl=[a-zA-Z-]{2,}">[^>]*<'|sed -e 's/sl=//g' -e 's/">/ -> /g' -e 's/<$//g'|tr "\n" ","|awk -F, '{ for ( i=1; i<=NF;i=i+3) printf "%-24s %-24s %-24s\n", $i, $(i+1), $(i+2) }'
+    curl -s --user-agent "${USER_AGENT}" "${BASE_URL}m?&mui=sl"|grep -Eo 'sl=[a-zA-Z-]{2,}">[^>]*<'|sed -e 's/sl=//g' -e 's/">/ -> /g' -e 's/<$//g'|tr "\n" ","|awk -F, '{ for ( i=1; i<=NF;i=i+3) printf "%-24s %-24s %-24s\n", $i, $(i+1), $(i+2) }'
     echo -e "\nUsage: `basename $0` Sentence [From] [To]"
     echo -e "------------------------------------"
     echo -e "Example:\n`basename $0` how"
-    echo -e "`basename $0` \"How they do it\" en zh"
+    echo -e "`basename $0` \"How are you\" en zh"
 
     exit 1
 fi
 
+#
+# Main
+#
 if [ $# -eq 1 ]; then
     SENTENCE=`echo "$1" | tr " " "+"`
 
-    # Default languages
-    if [[ "$SENTENCE" =~ [a-zA-Z] ]]; then
-        FROM='en'
-        TO='zh'
+    # Default languages settings
+    if [[ "$SENTENCE" =~ ^[a-zA-Z] ]]; then
+        FROM=${LANG1}
+        TO=${LANG2}
     else
-        FROM='zh'
-        TO='en'
+        FROM=${LANG2}
+        TO=${LANG1}
     fi
 else
     SENTENCE=`echo "$1" | tr " " "+"`
@@ -46,22 +61,30 @@ else
     TO="$3"
 fi
 
+#
+# Translate
+#
 echo "[${FROM}] -> [${TO}]"
-RESULT=$(curl -s --user-agent "$USER_AGENT" "https://translate.google.com/m?hl=en&sl=${FROM}&tl=${TO}&ie=UTF-8&prev=_m&q=${SENTENCE}"| sed -n 's/.*class="t0">//;s/<.*$//p')
+RESULT=$(curl -s --user-agent "${USER_AGENT}" "${BASE_URL}m?hl=en&sl=${FROM}&tl=${TO}&ie=UTF-8&prev=_m&q=${SENTENCE}"| sed -n 's/.*class="t0">//;s/<.*$//p')
 echo $RESULT
 
-# Try with voice
+#
+# Voice
+#
 if [ $YES_VOICE ]; then
     TMPFILE=$(mktemp --suffix .mp3)
-    [ -f $TMPFILE ] && curl -f -s --user-agent "$USER_AGENT" "https://translate.google.com/translate_tts?ie=UTF-8&tl=${FROM}&q=${SENTENCE}" -o $TMPFILE
-    [ -s $TMPFILE ] && mpg123 -q $TMPFILE
+    [ -f ${TMPFILE} ] && curl -s --user-agent "${USER_AGENT}" "${BASE_URL}translate_tts?ie=UTF-8&tl=${FROM}&q=${SENTENCE}" -o ${TMPFILE}
+    [ -s ${TMPFILE} ] && mpg123 -q ${TMPFILE}
 
     if [ -n "$RESULT" ]; then
-        [ -f $TMPFILE ] && curl -f -s --user-agent "$USER_AGENT" "https://translate.google.com/translate_tts?ie=UTF-8&tl=${TO}&q=${RESULT}" -o $TMPFILE
-        [ -s $TMPFILE ] && mpg123 -q $TMPFILE
+        [ -f ${TMPFILE} ] && curl -s --user-agent "${USER_AGENT}" "${BASE_URL}translate_tts?ie=UTF-8&tl=${TO}&q=${RESULT}" -o ${TMPFILE}
+        [ -s ${TMPFILE} ] && mpg123 -q ${TMPFILE}
     fi
 
-    [ -f $TMPFILE ] && rm -f $TMPFILE
+    [ -f ${TMPFILE} ] && rm -f ${TMPFILE}
 fi
 
+set +ue
+
+# Exit
 exit 0
