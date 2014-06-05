@@ -21,14 +21,14 @@ CHECKED=/tmp/tmp.${0/*\//}-checked
 if [ ! -f $CHECKED ]; then
     curl -V >/dev/null 2>&1  || { echo "'curl' not installed. Exiting ..." >&2; exit 1;}
     curl -v ${BASE_URL} 2>&1 |  grep -m1 "HTTP/1.1" >/dev/null 2>&1 || { echo "No Internet. Exiting..." >&2; exit 1;}
-    which mpg123 >/dev/null 2>&1
-    if [ $? -ne 0 ]; then
-        echo "No mpg123, install it first for activating pronunciation ..."
-        touch $CHECKED
-    else
-        # enable voice
-        echo 1 >$CHECKED
-    fi
+    touch $CHECKED
+fi
+
+if [ -x `which mpg123` ]; then
+    # enable voice
+    echo 1 >$CHECKED
+elif [ -z $CHECKED ]; then
+    echo "No mpg123, install it first for activating pronunciation ..."
 fi
 
 #
@@ -76,7 +76,7 @@ echo $RESULT
 #
 # Voice
 #
-if [ -s $CHECKED ]; then
+if [ -s $CHECKED ] && [ -n "$RESULT" ] && [ "X$RESULT" != "X$SENTENCE" ]; then
     MP3FILE=$(mktemp --suffix .mp3)
     [ -f ${MP3FILE} ] && curl -s --user-agent "${USER_AGENT}" "${BASE_URL}translate_tts?ie=UTF-8&tl=${FROM}&q=${SENTENCE}" -o ${MP3FILE}
     [ -s ${MP3FILE} ] && mpg123 -q ${MP3FILE}
